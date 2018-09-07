@@ -4,6 +4,8 @@ import numpy as np
 import cv2
 import cv2.aruco as aruco
 
+DEBUG = False
+
 def createParser():
 	parser = argparse.ArgumentParser()
 
@@ -53,46 +55,46 @@ def createPrintableMap(paper_size,
 	image_resolution = [x*ppm for x in paper_size]
 
 	marker_resolution = marker_size*ppm
-	print("marker resolution = {}".format(marker_resolution))
+	if DEBUG: print("marker resolution = {}".format(marker_resolution))
 
 	gap = int(marker_resolution*gap_coef)
-	print("gap = {}".format(gap))
+	if DEBUG: print("gap = {}".format(gap))
 
 	mg_resolution = marker_resolution+gap
-	print("mg_resolution = {}".format(mg_resolution))
+	if DEBUG: print("mg_resolution = {}".format(mg_resolution))
 
 	aruco_dict = aruco.Dictionary_get(dict)
 
 	# Here we calculating maxium possible columns and rows we can
 	# achieve with given size of paper and gap
-	print(mg_resolution)
+	if DEBUG: print(mg_resolution)
 
-	print(image_resolution[0])
-	print(image_resolution[1])
+	if DEBUG: print(image_resolution[0])
+	if DEBUG: print(image_resolution[1])
 	rows = int(image_resolution[0] / mg_resolution)
-	print("gaps_ignored = {}".format(gaps_ignored))
+	if DEBUG: print("gaps_ignored = {}".format(gaps_ignored))
 
 	top_gap = int(not ('TOP' in gaps_ignored))
-	print("top_gap = {}".format(top_gap))
+	if DEBUG: print("top_gap = {}".format(top_gap))
 	bottom_gap = int (not ('BOTTOM' in gaps_ignored))
-	print("bottom_gap = {}".format(bottom_gap))
+	if DEBUG: print("bottom_gap = {}".format(bottom_gap))
 	supposed_height = (rows*mg_resolution - gap) + top_gap*gap+bottom_gap*gap
 
-	print("supposed height = {}".format(supposed_height))
+	if DEBUG: print("supposed height = {}".format(supposed_height))
 	if image_resolution[0] < supposed_height: rows = rows-1
 
 
 	cols = int(image_resolution[1] / mg_resolution)
 
 	left_gap = int(not 'LEFT' in gaps_ignored)
-	print("left gap = {}".format(left_gap))
+	if DEBUG: print("left gap = {}".format(left_gap))
 	right_gap = int (not 'RIGHT' in gaps_ignored)
-	print("right gap = {}".format(right_gap))
+	if DEBUG: print("right gap = {}".format(right_gap))
 
 	# |--left_gap--|--(cols*mg_resolution - gap)--|--right_gap--|
 	supposed_width = (cols*mg_resolution - gap) + left_gap*gap+right_gap*gap
 
-	print("supposed width = {}".format(supposed_width))
+	if DEBUG: print("supposed width = {}".format(supposed_width))
 	if image_resolution[1] < supposed_width: cols = cols-1
 
 	# Up to this point, was a calculation of parameters which is useful for map
@@ -157,7 +159,7 @@ paper = {"A4": PAPER_A4,
 		 "A3": PAPER_A3,
 		 "USER": [paper_height,paper_width]}[paper.upper()]
 
-print("paper size: {}".format(paper))
+if DEBUG: print("paper size: {}".format(paper))
 result = createPrintableMap(paper,side,gaps_ignored = gaps_ignored, start_id = start_id)
 
 cv2.imwrite(filename, result)
