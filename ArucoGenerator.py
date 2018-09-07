@@ -29,7 +29,7 @@ def createParser():
 
 	#image filename
 	parser.add_argument('-n', '--filename',help = 'filename of output image')
-	
+
 	#resolution of picture
 	parser.add_argument('--ppm',
 				'--pixels_per_millimeter',
@@ -39,19 +39,19 @@ def createParser():
 	parser.add_argument('--ignore_gaps',nargs='+', help = 'Defines which gaps near border can be ignored. \
 						Example: --ignore_gaps TOP BOTTOM LEFT RIGHT')
 
-	parser.add_argument('--start_id',help = "Marker's numbers starts whith this id")
+	parser.add_argument('--start_id', type = int, help = "Marker's numbers starts whith this id")
 	return parser
 
-def createMap(paper_size, 
+def createPrintableMap(paper_size,
 		marker_size,
 		start_id = 0,
 		dict = aruco.DICT_4X4_1000,
 		ppm = 10,
 		gap_coef = 1/3,
 		gaps_ignored = []):
-	
+
 	image_resolution = [x*ppm for x in paper_size]
-	
+
 	marker_resolution = marker_size*ppm
 	print("marker resolution = {}".format(marker_resolution))
 
@@ -64,7 +64,7 @@ def createMap(paper_size,
 	aruco_dict = aruco.Dictionary_get(dict)
 
 	# Here we calculating maxium possible columns and rows we can
-	# achieve with given size of paper and gap 
+	# achieve with given size of paper and gap
 	print(mg_resolution)
 
 	print(image_resolution[0])
@@ -91,32 +91,46 @@ def createMap(paper_size,
 
 	# |--left_gap--|--(cols*mg_resolution - gap)--|--right_gap--|
 	supposed_width = (cols*mg_resolution - gap) + left_gap*gap+right_gap*gap
-	
+
 	print("supposed width = {}".format(supposed_width))
 	if image_resolution[1] < supposed_width: cols = cols-1
 
-	
-	# Creating result image itself
-	result = np.zeros((image_resolution[0],image_resolution[1]),dtype = 'uint8')
-	result = result + 255
+	# Up to this point, was a calculation of parameters which is useful for map
+	# creation. Now, creating map itself
 
-	id = 0
+	actual_image = createMap(rows,cols,marker_resolution,gap,start_id, ppm, aruco_dict)
+	image_size = actual_image.shape
+	# Here, just created map will aligned due to command line arguments
+	#actual_image = result[0:endpoint[0],0:endpoint[1]]
+
+	x = gap*top_gap
+	y = gap*left_gap
+	result = np.zeros((image_resolution[0],image_resolution[1]),dtype = 'uint8') + 255
+	result[x:x+image_size[0],y:y+image_size[1]] = actual_image
+	return result
+
+def createMap(rows,cols,marker_resolution,gap,start_id, ppm,aruco_dict):
+	# To create a map, we need to know these parameters:
+	# pixel p millimeter,rows of map, columns of map, gap and marker resolution
+	# and id to start with.
+	mg_resolution = marker_resolution+gap
+	image_size = [mg_resolution*rows-gap, mg_resolution*cols - gap]
+	actual_image = np.zeros((image_size[0],image_size[1]),dtype = 'uint8') + 255
+
+	id = start_id
 	#filling image with markers
 	for row in range(rows):
 		for col in range(cols):
 			x = mg_resolution*row
 			y = mg_resolution*col
 			marker = aruco.drawMarker(aruco_dict, id, marker_resolution)
-			result[x:x+marker_resolution,y:y+marker_resolution] = marker
+			actual_image[x:x+marker_resolution,y:y+marker_resolution] = marker
 			id = id + 1
-	endpoint = [mg_resolution*rows-gap, mg_resolution*cols - gap]
-	#border gaps aligning
-	actual_image = result[0:endpoint[0],0:endpoint[1]]
-	x = gap*top_gap
-	y = gap*left_gap
-	result = np.zeros((image_resolution[0],image_resolution[1]),dtype = 'uint8') + 255
-	result[x:x+endpoint[0],y:y+endpoint[1]] = actual_image
-	return result
+	return actual_image
+
+
+def createMultiPageMap(map_ratio, paper, ):
+	pass
 
 #paper constants in millimeters
 PAPER_A3 = [297,420]
@@ -144,8 +158,6 @@ paper = {"A4": PAPER_A4,
 		 "USER": [paper_height,paper_width]}[paper.upper()]
 
 print("paper size: {}".format(paper))
-result = createMap(paper,side,gaps_ignored = gaps_ignored, start_id = start_id)
+result = createPrintableMap(paper,side,gaps_ignored = gaps_ignored, start_id = start_id)
 
 cv2.imwrite(filename, result)
-# second parameter is id number
-# last parameter is total image size
